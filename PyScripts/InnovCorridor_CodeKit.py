@@ -21,22 +21,37 @@ datapath_metadata = datapath_main + 'metadata\\metadata.xlsx'
 
 
 ##########################
-
-class carb_PM25:
-    def __init__(self, df: DataFrame):
-        self._rawData = df
+class carb:
+    def __init__(self, data: DataFrame, value_name: str):
+        self._value_name = value_name
+        self._rawData = data
         self._data = self._rawData[['date', 'start_hour', 'value']].dropna()
-        self._data.rename(columns={'value': 'PM2.5 Background [ug/m3]'}, inplace=True)
         self._data['datetime'] = self._data['date'].astype(str) + ' ' + \
                                  self._data['start_hour'].astype(int).astype(str).str.pad(2, fillchar='0')
         self._data = dtk.df_str2dt(self._data, 'datetime', '%Y-%m-%d %H', curr_tz='America/Los_Angeles', overwrite=True)
+        self._data.rename(columns={'value': str(self._value_name)}, inplace=True)
         self._data.dropna(inplace=True)
         self._data.set_index('datetime-America/Los_Angeles', inplace=True, drop=True)
-        self._data = self._data[['PM2.5 Background [ug/m3]']]
+        self._data = self._data[[str(self._value_name)]]
         self._data = self._data.sort_index()
 
     def get_data(self):
         return self._data
+
+    def get_rawData(self):
+        return self._rawData
+
+
+class carb_PM25(carb):
+    def __init__(self, data: DataFrame):
+        super().__init__(data, 'Background PM2.5 [ug/m3]')
+
+
+class carb_NO2(carb):
+    def __init__(self, data: DataFrame):
+        super().__init__(data,'Background NO2 [ppm]')
+        self._data['Background NO2 [ppm]']=self._data['Background NO2 [ppm]']*1000
+        self._data.rename(columns={'Background NO2 [ppm]':'Background NO2 [ppb]'},inplace=True)
 
 
 class clarity_historical:
@@ -286,6 +301,7 @@ class historical_no2:
         self._data = self._data[self._data['Site ID'] != 'AQ7GDKW8']
         self._data = self._data[self._data['Site ID'] != 'AXD4VGR2']
         self._data = self._data.loc[:, ['Date', 'Site ID', 'Nitrogen Dioxide']]
+        self._data.rename(columns={'Nitrogen Dioxide':'Nitrogen Dioxide [ppb]'},inplace=True)
         self._data = dtk.df_str2dt(self._data, 'Date', '%Y-%m-%d %H:%M:%S', curr_tz='UTC', overwrite=True)
         self._data = dtk.df_convertTZ(self._data, 'datetime-UTC', new_tz='America/Los_Angeles', overwrite=True,
                                       newColName='datetime-America/Los_Angeles')
