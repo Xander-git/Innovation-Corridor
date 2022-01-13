@@ -1,0 +1,4 @@
+[submodule "aqmd_pylib"]
+	path = aqmd_pylib
+	url = https://github.com/Xander-git/aqmd_pylib.git
+	branch = dev
